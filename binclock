@@ -1,0 +1,81 @@
+#!/bin/bash
+ ########################################################################
+ #									#
+ # OPS435-Assignment2							#
+ # Professor: John Selmys						#
+ # Author: Nishit Shah							#
+ # Seneca College, Toronto						#
+ # Date : November 4, 2014						#
+ #									#			
+ # BASH script to display a colourful "Binary clock" in "real" time	#
+ #									#
+ # Press Ctrl+S anytime to Pause the Clock and Ctrl+Q to Resume		#
+ #									#
+ ########################################################################
+
+# Set the background to Blue Colour
+tput setab 4
+tput clear
+
+# Keep the clock running continuously using a while loop
+while :
+do
+# Initial Settings:
+	# 1.Hide accidental user input to display on screen while clock is running
+	# 2.Enable XON/XOFF flow control
+	# 3.Set the cursor invisible
+	# 4.Font size: Bold
+
+	stty -echo
+	stty ixon
+	stty stop ^S
+	stty start ^Q
+	setterm -cursor off
+	tput bold
+# Set the cursor centered
+	r=$(( $(tput lines) / 2 ))
+	c=$(( $(tput cols) / 2 ))
+	tput cup $r $c
+
+# Enable date. Display Titles on bottom horizontal using unicode and 256-colour pallet
+	datevalue=$(date +%H%M%S)
+	echo -ne '\e[38;5;36m''\u210F''\u210F''\u0271''\u0271''\u0161''\u0161''\e[44m'
+	tput cub 7
+# Titles on the left vertical displaying the decimal value using unicode characters
+	for i in {0..3}
+	do
+		tput cub 1
+		tput cuu 1
+		echo -ne "\e[38;5;94m\u003$((2**$i))\e[44m"
+	done
+	tput cuf 1
+
+# Main working of clock
+	for i in {0..5}
+	do
+	# Conversion of decimal to binary
+		function digits(){
+			digit=${datevalue:$i:1}
+			digitbin=$(echo "ibase=10;obase=2;$digit" | bc)
+			tput cuf 1
+			tput cud 4
+
+	# Binary bits of each clock hand using unicode characters
+			for j in {4..1}
+			do
+				bit=$(printf "%04d\n" "$digitbin" |cut -c$j)
+				tput cub 1
+				tput cuu 1
+				tput setaf 6
+				if [ "$bit" -eq "1" ]; then
+					echo -ne "\e[38;5;160m\u2665\e[44m"
+				else
+					echo -ne "\e[38;5;226m\u266C\e[44m"
+				fi
+			done
+		}
+		digits
+	done
+# CTRl-C (INTERRUPT) to close the application and reset to normal state.
+	trap "tput sgr 0; setterm -reset;stty echo;exit" SIGINT
+done
